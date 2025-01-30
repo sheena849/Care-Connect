@@ -13,6 +13,8 @@ flask-marshmallow = "*"
 flask-wtf = "*"
 werkzeug = "*"
 flask-jwt-extended = "*"
+flask-restful = "*"
+marshmallow-sqlalchemy = "*"
 
 [dev-packages]
 

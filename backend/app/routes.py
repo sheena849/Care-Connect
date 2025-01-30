@@ -1,221 +1,344 @@
 from flask import Blueprint, request, jsonify
 from app import db
-from app.models import User, Patient, Appointment
+from app.models import User, Patient, Appointment, Hospital, UserHospital
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from datetime import timedelta 
-main = Blueprint('main', __name__)
+from datetime import timedelta
+
+# Blueprint instances for different resources
+user_bp = Blueprint('user_bp', __name__, url_prefix='/users')
+patient_bp = Blueprint('patient_bp', __name__, url_prefix='/patients')
+appointment_bp = Blueprint('appointment_bp', __name__, url_prefix='/appointments')
+hospital_bp = Blueprint('hospital_bp', __name__, url_prefix='/hospitals')
+userhospital_bp = Blueprint('userhospital_bp', __name__, url_prefix='/userhospital')
+
+
+def validate_data(required_fields, data):
+    return all(data.get(field) for field in required_fields)
 
 # -------------------------
 # User Routes (Signup, Login, CRUD)
 # -------------------------
-
-# Create User (Signup)
-@main.route('/signup', methods=['POST'])
+@user_bp.route('/signup', methods=['POST'])
 def signup():
-    data = request.get_json()
-    name = data.get('name')
-    email = data.get('email')
-    password = data.get('password')
-    role = data.get('role')
+    try:
+        # Directly get the parsed JSON
+        json_data = request.get_json()
+        print(f"Parsed JSON: {json_data}")  # Debugging: Check the parsed JSON
+        
+        if json_data is None:
+            return jsonify({"error": "Invalid JSON data"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Error parsing JSON: {str(e)}"}), 400
 
-    # Validate data
-    if not all([name, email, password, role]):
+    # Validate the required fields
+    if not validate_data(['name', 'email', 'password'], json_data):
         return jsonify({"error": "Missing data"}), 400
-    
-    if User.query.filter_by(email=email).first():
+
+    # Check if email already exists
+    if User.query.filter_by(email=json_data['email']).first():
         return jsonify({"error": "Email already exists"}), 400
-    
-    # Updated password hashing method
-    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-    new_user = User(name=name, email=email, password=hashed_password, role=role)
+
+    # Hash the password and create a new user
+    hashed_password = generate_password_hash(json_data['password'], method='pbkdf2:sha256')
+    new_user = User(name=json_data['name'], email=json_data['email'], password=hashed_password)
+
+    # Save the user to the database
     db.session.add(new_user)
     db.session.commit()
+
     return jsonify({"message": "User created successfully"}), 201
-@main.route('/login', methods=['POST'])
+
+@user_bp.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    try:
+        data = request.get_json()
 
-    # Check if both email and password are provided
-    if not all([email, password]):
-        return jsonify({"error": "Missing data"}), 400
-
-    # Query the user by email
-    user = User.query.filter_by(email=email).first()
-
-    # If the user is not found, return a generic error
-    if not user:
-        print(f"User with email {email} not found.")  # Debugging log
-        return jsonify({"error": "Authentication failed"}), 401
-
-    # Check if the password matches
-    if not check_password_hash(user.password, password):
-        print(f"Password mismatch for email: {email}")  # Debugging log
-        return jsonify({"error": "Authentication failed"}), 401
-
-    # If user exists and password is correct, generate access token
-    access_token = create_access_token(identity={"id": user.id, "role": user.role}, expires_delta=timedelta(hours=24))
-    return jsonify({"message": "Login successful", "token": access_token}), 200
+        if not validate_data(['email', 'password'], data):
+            return jsonify({"error": "Missing data"}), 400
+        
+        user = User.query.filter_by(email=data['email']).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        if not check_password_hash(user.password, data['password']):
+            return jsonify({"error": "Authentication failed"}), 401
+        
+        # Creating the token with only the 'id' field (no 'role')
+        access_token = create_access_token(identity={"id": user.id}, expires_delta=timedelta(hours=24))
+        return jsonify({"message": "Login successful", "token": access_token}), 200
+    
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
-# Get All Users (Admins or Doctors)
-@main.route('/users', methods=['GET'])
+@user_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_users():
-    current_user = get_jwt_identity()
-    if current_user["role"] != "admin":  # Optional role-based restriction
-        return jsonify({"error": "Unauthorized"}), 403
-
-    users = User.query.all()
-    return jsonify([{"id": user.id, "name": user.name, "email": user.email, "role": user.role} for user in users])
-
-# Update User
-@main.route('/users/<int:user_id>', methods=['PUT'])
-@jwt_required()
-def update_user(user_id):
-    data = request.get_json()
+    user_id = get_jwt_identity()["id"]  # Get user ID from JWT identity
     user = User.query.get_or_404(user_id)
-
-    user.name = data.get('name', user.name)
-    user.email = data.get('email', user.email)
     
-    if "password" in data:
-        # Change hashing method to 'pbkdf2:sha256'
-        user.password = generate_password_hash(data['password'], method='pbkdf2:sha256')
-        
-    user.role = data.get('role', user.role)
+    # You can filter based on user permissions if needed (e.g., check if user is an 'admin')
+    # However, you should remove the role check since it's not in your database
+    users = User.query.all()  # Return all users or filter them as per your requirements
+    
+    return jsonify([{"id": user.id, "name": user.name, "email": user.email} for user in users])
 
-    db.session.commit()
-    return jsonify({"message": "User updated successfully"}), 200
-
-# Delete User
-@main.route('/users/<int:user_id>', methods=['DELETE'])
+@user_bp.route('/<int:user_id>', methods=['PUT', 'DELETE'])
 @jwt_required()
-def delete_user(user_id):
+def modify_user(user_id):
     user = User.query.get_or_404(user_id)
+    if request.method == 'PUT':
+        data = request.get_json()
+        user.name = data.get('name', user.name)
+        user.email = data.get('email', user.email)
+        if "password" in data:
+            user.password = generate_password_hash(data['password'], method='pbkdf2:sha256')
+        db.session.commit()
+        return jsonify({"message": "User updated successfully"}), 200
+    
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User deleted successfully"}), 200
 
 # -------------------------
-# Appointment Routes (CRUD)
+# Patient Routes (CRUD)
 # -------------------------
+@patient_bp.route('/', methods=['POST', 'GET'])
+@jwt_required()
+def manage_patients():
+    if request.method == 'POST':
+        data = request.get_json()
+        if not data.get('name'):
+            return jsonify({"error": "Patient name is required"}), 400
+        
+        # Get the user_id from the JWT token
+        user_id = get_jwt_identity()["id"]
+        
+        new_patient = Patient(name=data['name'], user_id=user_id)  # Assign the user_id to the patient
+        db.session.add(new_patient)
+        db.session.commit()
+        return jsonify({"message": "Patient created successfully", "patient": new_patient.to_dict()}), 201
+    
+    patients = Patient.query.all()
+    return jsonify([patient.to_dict() for patient in patients])
 
-# Create Appointment
-@main.route('/appointments', methods=['POST'])
+@patient_bp.route('/<int:patient_id>', methods=['GET', 'PUT', 'DELETE'])
+@jwt_required()
+def patient_operations(patient_id):
+    patient = Patient.query.get_or_404(patient_id)
+    if request.method == 'GET':
+        return jsonify(patient.to_dict())
+    elif request.method == 'PUT':
+        data = request.get_json()
+        if 'name' not in data or not data['name']:
+            return jsonify({"error": "Patient name is required"}), 400
+        patient.name = data['name']
+        db.session.commit()
+        return jsonify({"message": "Patient updated successfully", "patient": patient.to_dict()}), 200
+    
+    db.session.delete(patient)
+    db.session.commit()
+    return jsonify({"message": "Patient deleted successfully"}), 200
+
+# -------------------------
+# Appointment Routes (CRUD)
+@appointment_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_appointment():
     data = request.get_json()
-    date = data.get('date')
-    patient_id = data.get('patient_id')
-    user_id = data.get('user_id')
-    status = data.get('status')
 
-    if not all([date, patient_id, user_id, status]):
+    # Update validation to match the actual fields in your model
+    if not validate_data(['date', 'user_id', 'description'], data):
         return jsonify({"error": "Missing data"}), 400
 
-    new_appointment = Appointment(date=date, patient_id=patient_id, user_id=user_id, status=status)
+    # Create the new appointment with the correct fields
+    new_appointment = Appointment(
+        date=data['date'],
+        user_id=data['user_id'],  # ensure user_id is passed in the request
+        description=data['description']  # assuming 'description' is the field name
+    )
+
     db.session.add(new_appointment)
     db.session.commit()
-    return jsonify({"message": "Appointment created successfully"}), 201
 
-#@main.route('/appointments/user/<int:user_id>', methods=['GET'])
+    return jsonify({"message": "Appointment created successfully", "appointment": new_appointment.to_dict()}), 201
+
+# -------------------------
+# Get Appointments by User
+# -------------------------
+@appointment_bp.route('/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_appointments(user_id):
-    print(f"Fetching appointments for user_id: {user_id}")  # Debugging log
     appointments = Appointment.query.filter_by(user_id=user_id).all()
-    if not appointments:
-        print(f"No appointments found for user_id: {user_id}")  # Debugging log
-    return jsonify([{"id": a.id, "date": a.date, "status": a.status, "patient_id": a.patient_id} for a in appointments])
+    return jsonify([{
+        "id": a.id,
+        "date": a.date,
+        "description": a.description,  # Match this with your model field
+        "user_id": a.user_id  # Add user_id as per your model
+    } for a in appointments])
 
-# Get All Appointments (For a Patient)
-@main.route('/appointments/patient/<int:patient_id>', methods=['GET'])
+
+# -------------------------
+# Get Appointments by Patient
+# -------------------------
+@appointment_bp.route('/patient/<int:patient_id>', methods=['GET'])
 @jwt_required()
 def get_patient_appointments(patient_id):
     appointments = Appointment.query.filter_by(patient_id=patient_id).all()
-    return jsonify([{"id": a.id, "date": a.date, "status": a.status, "user_id": a.user_id} for a in appointments])
+    return jsonify([{
+        "id": a.id,
+        "date": a.date,
+        "description": a.description,  # Updated to match your model field
+        "user_id": a.user_id  # Added user_id
+    } for a in appointments])
 
-# Update Appointment
-@main.route('/appointments/<int:appointment_id>', methods=['PUT'])
+
+# -------------------------
+# Update or Delete Appointment
+# -------------------------
+@appointment_bp.route('/<int:appointment_id>', methods=['PUT', 'DELETE'])
 @jwt_required()
-def update_appointment(appointment_id):
-    data = request.get_json()
+def appointment_operations(appointment_id):
     appointment = Appointment.query.get_or_404(appointment_id)
-
-    appointment.date = data.get('date', appointment.date)
-    appointment.status = data.get('status', appointment.status)
-    db.session.commit()
-    return jsonify({"message": "Appointment updated successfully"}), 200
-
-# Delete Appointment
-@main.route('/appointments/<int:appointment_id>', methods=['DELETE'])
-@jwt_required()
-def delete_appointment(appointment_id):
-    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    if request.method == 'PUT':
+        data = request.get_json()
+        appointment.date = data.get('date', appointment.date)
+        appointment.description = data.get('description', appointment.description)  # Updated to description
+        db.session.commit()
+        return jsonify({"message": "Appointment updated successfully"}), 200
+    
     db.session.delete(appointment)
     db.session.commit()
     return jsonify({"message": "Appointment deleted successfully"}), 200
 
-
-# Create Patient
-@main.route('/patients', methods=['POST'])
+@hospital_bp.route('/', methods=['POST', 'GET'])
 @jwt_required()
-def create_patient():
-    data = request.get_json()
-    name = data.get('name')
+def manage_hospitals():
+    if request.method == 'POST':
+        data = request.get_json()
+        print(f"Received data: {data}")  # Log the incoming data
 
-    if not name:
-        return jsonify({"error": "Missing patient name"}), 400
+        if not data.get('name'):
+            return jsonify({"error": "Hospital name is required"}), 400
 
-    new_patient = Patient(name=name)
-    db.session.add(new_patient)
-    db.session.commit()
-    return jsonify({"message": "Patient created successfully", "patient": new_patient.to_dict()}), 201
+        new_hospital = Hospital(
+            name=data['name'],
+            location=data.get('location'),
+            services=data.get('services')
+        )
+        db.session.add(new_hospital)
+        db.session.commit()
 
-# Get All Patients
-@main.route('/patients', methods=['GET'])
+        return jsonify({"message": "Hospital created successfully", "hospital": new_hospital.to_dict()}), 201
+
+    hospitals = Hospital.query.all()
+    return jsonify([hospital.to_dict() for hospital in hospitals])
+
+
+@hospital_bp.route('/<int:hospital_id>', methods=['GET', 'PUT', 'DELETE'])
 @jwt_required()
-def get_patients():
-    patients = Patient.query.all()
-    return jsonify([patient.to_dict() for patient in patients])
-
-# Get Patient by ID
-@main.route('/patients/<int:patient_id>', methods=['GET'])
-@jwt_required()
-def get_patient(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
-    return jsonify(patient.to_dict())
-
-@main.route('/patients/<int:patient_id>', methods=['PUT'])
-@jwt_required()
-def update_patient(patient_id):
-    data = request.get_json()
-
-    # Ensure that the name is provided
-    if 'name' not in data or not data['name']:
-        return jsonify({"error": "Patient name is required"}), 400
-
-    # Get the patient from the database
-    patient = Patient.query.get_or_404(patient_id)
-
-    # Update the patient's name
-    patient.name = data['name']
+def hospital_operations(hospital_id):
+    hospital = Hospital.query.get_or_404(hospital_id)
+    if request.method == 'GET':
+        return jsonify(hospital.to_dict())
+    elif request.method == 'PUT':
+        data = request.get_json()
+        hospital.name = data.get('name', hospital.name)
+        hospital.location = data.get('location', hospital.location)
+        hospital.services = data.get('services', hospital.services)
+        db.session.commit()
+        return jsonify({"message": "Hospital updated successfully", "hospital": hospital.to_dict()}), 200
     
+    db.session.delete(hospital)
+    db.session.commit()
+    return jsonify({"message": "Hospital deleted successfully"}), 200
+
+@userhospital_bp.route('/', methods=['POST'])
+@jwt_required()
+def create_user_hospital():
+    data = request.get_json()
+
+    # Check if the required fields (user_id, hospital_id) are provided
+    if not data.get('user_id') or not data.get('hospital_id'):
+        return jsonify({"error": "User ID and Hospital ID are required"}), 400
+
+    # Create new UserHospital entry
+    new_user_hospital = UserHospital(
+        user_id=data['user_id'],
+        hospital_id=data['hospital_id'],
+        status=data.get('status')  # Optional field
+    )
+
+    db.session.add(new_user_hospital)
     db.session.commit()
 
     return jsonify({
-        "message": "Patient updated successfully",
-        "patient": patient.to_dict()
-    }), 200
+        "message": "User-Hospital relationship created successfully",
+        "user_hospital": {
+            "id": new_user_hospital.id,
+            "user_id": new_user_hospital.user_id,
+            "hospital_id": new_user_hospital.hospital_id,
+            "status": new_user_hospital.status
+        }
+    }), 201
 
-
-# Delete Patient
-@main.route('/patients/<int:patient_id>', methods=['DELETE'])
+@userhospital_bp.route('/user/<int:user_id>', methods=['GET'])
 @jwt_required()
-def delete_patient(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
-    db.session.delete(patient)
+def get_user_hospitals(user_id):
+    # Get all UserHospital records related to a specific user
+    user_hospitals = UserHospital.query.filter_by(user_id=user_id).all()
+
+    return jsonify([{
+        "id": uh.id,
+        "user_id": uh.user_id,
+        "hospital_id": uh.hospital_iduserhospital_bp,
+        "status": uh.status
+    } for uh in user_hospitals])
+
+@userhospital_bp.route('/hospital/<int:hospital_id>', methods=['GET'])
+@jwt_required()
+def get_hospital_users(hospital_id):
+    # Get all UserHospital records related to a specific hospital
+    hospital_users = UserHospital.query.filter_by(hospital_id=hospital_id).all()
+
+    return jsonify([{
+        "id": uh.id,
+        "user_id": uh.user_id,
+        "hospital_id": uh.hospital_id,
+        "status": uh.status
+    } for uh in hospital_users])
+@userhospital_bp.route('/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_user_hospital(id):
+    data = request.get_json()
+
+    # Get the relationship to update
+    user_hospital = UserHospital.query.get_or_404(id)
+
+    # Update the status if provided
+    user_hospital.status = data.get('status', user_hospital.status)
+
     db.session.commit()
-    return jsonify({"message": "Patient deleted successfully"}), 200
+
+    return jsonify({
+        "message": "User-Hospital relationship updated successfully",
+        "user_hospital": {
+            "id": user_hospital.id,
+            "user_id": user_hospital.user_id,
+            "hospital_id": user_hospital.hospital_id,
+            "status": user_hospital.status
+        }
+    }), 200
+@userhospital_bp.route('/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_user_hospital(id):
+    # Get the relationship to delete
+    user_hospital = UserHospital.query.get_or_404(id)
+
+    db.session.delete(user_hospital)
+    db.session.commit()
+
+    return jsonify({"message": "User-Hospital relationship deleted successfully"}), 200
