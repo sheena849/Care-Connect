@@ -15,7 +15,7 @@ const AppointmentList = () => {
                 const token = localStorage.getItem('token'); // Assuming you store the JWT token in local storage
                 const response = await axios.get(`http://localhost:5000/appointments/user/${userId}`, {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${token}`, 
                     },
                 });
                 setAppointments(response.data);

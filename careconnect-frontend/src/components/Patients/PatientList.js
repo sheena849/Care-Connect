@@ -61,7 +61,7 @@ const PatientList = () => {
                     <li key={patient.id}>
                         {patient.name}
                         <button onClick={() => handleEdit(patient)}>Edit</button>
-                        <button onClick={() => handleDelete(patient.id)}>Delete</button> {/* Delete button */}
+                        <button onClick={() => handleDelete(patient.id)}>Delete</button>
                     </li>
                 ))}
             </ul>

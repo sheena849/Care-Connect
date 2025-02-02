@@ -19,6 +19,13 @@ class Appointment(db.Model):
     date = db.Column(db.String(100))
     description = db.Column(db.String(500))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'date': self.date,
+            'description': self.description,
+            'user_id': self.user_id
+        }
 
 # Hospital Model
 class Hospital(db.Model):

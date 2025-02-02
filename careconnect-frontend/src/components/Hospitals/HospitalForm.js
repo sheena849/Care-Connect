@@ -1,4 +1,3 @@
-// src/components/Hospitals/HospitalForm.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,6 +12,7 @@ const HospitalForm = () => {
     const hospital = locationState.state?.hospital; // Get the hospital data from the state
 
     useEffect(() => {
+        console.log('Received hospital data:', hospital); // Log the hospital data
         if (hospital) {
             setName(hospital.name);
             setLocation(hospital.location);
@@ -20,41 +20,41 @@ const HospitalForm = () => {
         }
     }, [hospital]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(''); // Reset error message
-
-        try {
-            const token = localStorage.getItem('token'); // Assuming you store the JWT token in local storage
-            if (hospital) {
-                // If hospital exists, update the hospital
-                await axios.put(`http://localhost:5000/hospitals/${hospital.id}`, 
-                    { name, location, services }, 
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-                console.log('Hospital updated:', hospital.id);
-            } else {
-                // If no hospital exists, create a new one
-                await axios.post('http://localhost:5000/hospitals/', 
-                    { name, location, services }, 
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-                console.log('Hospital created');
-            }
-            navigate('/hospitals'); // Redirect to the hospital list after submission
-        } catch (err) {
-            console.error('Error saving hospital:', err);
-            setError(err.response?.data?.error || 'An error occurred while saving the hospital.');
-        }
-    };
+    const handleSubmit = async (e) => { // Add async here
+      e.preventDefault();
+      setError(''); // Reset error message
+  
+      try {
+          const token = localStorage.getItem('token'); // Assuming you store the JWT token in local storage
+          if (hospital) {
+              // If hospital exists, update the hospital
+              await axios.put(`http://localhost:5000/hospitals/${hospital.id}`, 
+                  { name, location, services }, 
+                  {
+                      headers: {
+                          Authorization: `Bearer ${token}`,
+                      },
+                  }
+              );
+              console.log('Hospital updated:', hospital.id);
+          } else {
+              // If no hospital exists, create a new one
+              await axios.post('http://localhost:5000/hospitals/', 
+                  { name, location, services }, 
+                  {
+                      headers: {
+                          Authorization: `Bearer ${token}`,
+                      },
+                  }
+              );
+              console.log('Hospital created');
+          }
+          navigate('/hospitals'); // Redirect to the hospital list after submission
+      } catch (err) {
+          console.error('Error saving hospital:', err);
+          setError(err.response?.data?.error || 'An error occurred while saving the hospital.');
+      }
+  };
 
     return (
         <div>
