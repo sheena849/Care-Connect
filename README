@@ -1,0 +1,24 @@
+# Healthcare Management System
+
+## Overview
+The Healthcare Management System is a web application designed to manage patients, appointments, hospitals, and user-hospital relationships. It provides functionalities for user authentication, patient management, appointment scheduling, and hospital management.
+
+## Features
+- User authentication (signup and login)
+- Patient management (add, edit, and view patients)
+- Appointment management (add, edit, and view appointments)
+- Hospital management (add, edit, and view hospitals)
+- User-hospital relationships (add, edit, and view relationships)
+
+## Technologies Used
+- **Frontend:** React
+- **Backend:** Python(flask)
+- **Authentication:** JSON Web Tokens (JWT)
+
+## Usage
+- User Registration: Users can sign up to create an account.
+- User Login: Existing users can log in to access their dashboard.
+- Patient Management: Users can add, edit, and delete patient records.
+- Appointment Management: Users can schedule, edit, and cancel appointments.
+- Hospital Management: Users can manage hospital information.
+- User -Hospital Relationships: Users can create and manage their relationships with hospitals.

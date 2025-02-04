@@ -4,6 +4,7 @@ from app.models import User, Patient, Appointment, Hospital, UserHospital
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import timedelta
+import logging
 
 # Blueprint instances for different resources
 user_bp = Blueprint('user_bp', __name__, url_prefix='/users')
@@ -59,20 +60,18 @@ def login():
         
         user = User.query.filter_by(email=data['email']).first()
         if not user:
-            return jsonify({"error": "User not found"}), 404
+            return jsonify({"error": "User  not found"}), 404
         
         if not check_password_hash(user.password, data['password']):
             return jsonify({"error": "Authentication failed"}), 401
         
-        # Creating the token with only the 'id' field (no 'role')
+        # Create the token with the user ID as a dictionary
         access_token = create_access_token(identity={"id": user.id}, expires_delta=timedelta(hours=24))
-        return jsonify({"message": "Login successful", "token": access_token}), 200
+        return jsonify({"message": "Login successful", "token": access_token, "userId": user.id}), 200
     
     except Exception as e:
-        print(f"Error occurred: {e}")
+        logging.error(f"Error occurred during login: {e}")
         return jsonify({"error": "Internal server error"}), 500
-
-
 @user_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_users():
@@ -110,19 +109,48 @@ def modify_user(user_id):
 def manage_patients():
     if request.method == 'POST':
         data = request.get_json()
-        if not data.get('name'):
+        logging.info(f"Received data for new patient: {data}")  # Log the received data
+
+        # Validate the incoming data
+        if not data or not data.get('name'):
+            logging.error("Patient name is required.")
             return jsonify({"error": "Patient name is required"}), 400
-        
+
         # Get the user_id from the JWT token
-        user_id = get_jwt_identity()["id"]
-        
-        new_patient = Patient(name=data['name'], user_id=user_id)  # Assign the user_id to the patient
-        db.session.add(new_patient)
-        db.session.commit()
-        return jsonify({"message": "Patient created successfully", "patient": new_patient.to_dict()}), 201
-    
-    patients = Patient.query.all()
-    return jsonify([patient.to_dict() for patient in patients])
+        user_identity = get_jwt_identity()
+        logging.info(f"Decoded user_identity: {user_identity}")  # Log the entire user_identity
+
+        # Log the JWT token itself
+        logging.info(f"JWT token: {request.headers.get('Authorization')}")
+
+        if isinstance(user_identity, dict) and "id" in user_identity:
+            user_id = user_identity["id"]
+        else:
+            logging.error("Invalid JWT token: user identity is not a dictionary or does not contain 'id'")
+            return jsonify({"error": "Invalid token"}), 401
+
+        # Log extracted user_id before using it
+        logging.info(f"Extracted user_id: {user_id} (Type: {type(user_id)})")
+
+        try:
+            # Create a new patient
+            new_patient = Patient(name=data['name'], user_id=user_id)
+            db.session.add(new_patient)
+            db.session.commit()
+            logging.info(f"Patient created successfully: {new_patient.to_dict()}")
+            return jsonify({"message": "Patient created successfully", "patient": new_patient.to_dict()}), 201
+        except Exception as e:
+            logging.error(f"Error adding patient: {e}", exc_info=True)  # Log the full traceback
+            return jsonify({"error": "An error occurred while adding the patient."}), 500
+
+    # Handle GET request to list all patients
+    try:
+        patients = Patient.query.all()
+        return jsonify([patient.to_dict() for patient in patients]), 200
+    except Exception as e:
+        logging.error(f"Error fetching patients: {str(e)}", exc_info=True)  # Log the full traceback
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 
 @patient_bp.route('/<int:patient_id>', methods=['GET', 'PUT', 'DELETE'])
 @jwt_required()
@@ -288,16 +316,23 @@ def create_user_hospital():
 @userhospital_bp.route('/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user_hospitals(user_id):
-    # Get all UserHospital records related to a specific user
-    user_hospitals = UserHospital.query.filter_by(user_id=user_id).all()
+    try:
+        logging.info(f"Fetching hospitals for user_id: {user_id}")
+        user_hospitals = UserHospital.query.filter_by(user_id=user_id).all()
 
-    return jsonify([{
-        "id": uh.id,
-        "user_id": uh.user_id,
-        "hospital_id": uh.hospital_iduserhospital_bp,
-        "status": uh.status
-    } for uh in user_hospitals])
+        if not user_hospitals:
+            logging.warning(f"No hospitals found for user_id: {user_id}")
+            return jsonify({"message": "No hospitals found for this user."}), 404
 
+        return jsonify([{
+            "id": uh.id,
+            "user_id": uh.user_id,
+            "hospital_id": uh.hospital_id,
+            "status": uh.status
+        } for uh in user_hospitals])
+    except Exception as e:
+        logging.error(f"Error fetching user hospitals for user_id {user_id}: {e}")
+        return jsonify({"error": "An error occurred while fetching user hospitals."}), 500
 @userhospital_bp.route('/hospital/<int:hospital_id>', methods=['GET'])
 @jwt_required()
 def get_hospital_users(hospital_id):

@@ -1,4 +1,3 @@
-// src/components/UserHospitals/UserHospitalList.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -56,7 +55,6 @@ const UserHospitalList = () => {
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>User ID</th>
                         <th>Hospital ID</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -66,7 +64,6 @@ const UserHospitalList = () => {
                     {userHospitals.map((uh) => (
                         <tr key={uh.id}>
                             <td>{uh.id}</td>
-                            <td>{uh.user_id}</td>
                             <td>{uh.hospital_id}</td>
                             <td>{uh.status}</td>
                             <td>

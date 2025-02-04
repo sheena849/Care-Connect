@@ -16,8 +16,15 @@ const Login = ({ onLogin }) => {
         const result = await login(formData);
         console.log('Login response:', result); 
         if (result.token) {
+                // Add error checking for userId
+        if (!result.userId) {
+            console.error('No userId in response:', result);
+            return;
+        }
             onLogin(result.token); 
-            localStorage.setItem('userId', result.userId);// Call onLogin with the token
+            localStorage.setItem('userId', result.userId); //you were not storing data in the browser's local storage setItem does that for you
+            localStorage.setItem('token', result.token);
+            // Call onLogin with the token
             navigate('/home'); // Redirect to the home page after login
         }
     };

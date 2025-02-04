@@ -1,81 +1,107 @@
 /* src/App.css or src/components/FormStyles.css */
 
-body {
-  display: flex;
-  justify-content: center; /* Center horizontally */
-  align-items: center; /* Center vertically */
-  height: 100vh; /* Full height of the viewport */
-  margin: 0; /* Remove default margin */
-  background-color: #f4f4f4;
-}
-
 h1 {
   text-align: center;
   color: #333;
+  font-size: 36px;
+  margin-top: 30px;
+  font-weight: 600;
 }
 
 h2 {
   color: #007bff;
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+
+/* General Styles */
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+  color: #555;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
 nav {
-  background-color: #007bff;
-  padding: 10px;
+  background-color: #4a90e2;
+  padding: 15px 30px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 nav ul {
   list-style: none;
   padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: space-around;
 }
 
 nav ul li {
   display: inline;
-  margin-right: 20px;
 }
 
 nav ul li a {
   color: white;
   text-decoration: none;
   font-weight: bold;
+  font-size: 18px;
+  transition: color 0.3s ease;
 }
 
 nav ul li a:hover {
-  text-decoration: underline;
+  color: #ffcc00;
+}
+
+nav ul li a.active {
+  color: #ffcc00;
 }
 
 .container {
-  max-width: 400px; /* Set a max width for the container */
-  padding: 20px; /* Add padding */
+  max-width: 800px;
+  padding: 30px;
   background: white;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin: 30px auto;
 }
 
 form {
-  margin: 40px 0; /* Add top margin to push the form down */
+  margin-top: 40px;
 }
 
-form input {
-  width: 300px; /* Set a fixed width for medium-sized inputs */
-  padding: 10px;
-  margin: 10px 0;
+form input, form select {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px;
+  margin: 12px 0;
   border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box; /* Ensures padding is included in width */
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
 }
 
 form button {
-  padding: 10px 15px;
-  background-color: #007bff;
+  padding: 12px 20px;
+  background-color: #4a90e2;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s; /* Smooth transition for hover effect */
+  font-size: 16px;
+  width: 100%;
+  max-width: 400px;
+  transition: background-color 0.3s;
+  margin-top: 10px;
 }
 
 form button:hover {
-  background-color: #0056b3;
+  background-color: #357ab8;
 }
 
 table {
@@ -86,37 +112,139 @@ table {
 
 table th, table td {
   border: 1px solid #ddd;
-  padding: 8px;
+  padding: 12px;
+  text-align: left;
+  font-size: 14px;
 }
 
 table th {
-  background-color: #007bff;
+  background-color: #4a90e2;
   color: white;
 }
 
 table tr:hover {
-  background-color: #f1f1f1;
+  background-color: #e9f5ff;
 }
 
-/* Additional styles for better layout */
-input[type="text"],
-input[type="email"],
-input[type="password"] {
-  font-size: 16px; /* Increase font size for better readability */
+table td {
+  color: #555;
 }
 
-button {
-  font-size: 16px; /* Increase button font size */
+/* Button with an Icon */
+button.icon-btn {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button.icon-btn svg {
+  margin-right: 10px;
+}
+
+button.icon-btn:hover {
+  background-color: #357ab8;
 }
 
 /* Responsive design */
-@media (max-width: 600px) {
+@media (max-width: 800px) {
+  .container {
+    padding: 20px;
+  }
+
+  nav ul {
+    flex-direction: column;
+    align-items: center;
+  }
+
   nav ul li {
-      display: block; /* Stack links vertically on small screens */
-      margin-bottom: 10px;
+    margin-bottom: 10px;
+  }
+
+  form input, form button {
+    max-width: 100%;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  nav {
+    padding: 10px;
   }
 
   .container {
-      padding: 10px; /* Reduce padding on small screens */
+    padding: 10px;
+  }
+
+  form {
+    margin-top: 30px;
+  }
+}
+/* Home Container */
+.home-container {
+  background-color: white;
+  max-width: 800px; /* Limit the max width for better layout */
+  padding: 30px;
+  border-radius: 8px; /* Softer corners */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  margin: 40px auto;
+  text-align: center;
+}
+
+/* Title Style */
+.home-container h2 {
+  font-size: 2rem;
+  color: #4a90e2; /* Main brand color */
+  margin-bottom: 20px;
+}
+
+/* Paragraph Style */
+.home-container p {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+/* Logout Button Style */
+.logout-button {
+  padding: 12px 20px;
+  background-color: #e74c3c;  /* Red color for logout */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+}
+
+.logout-button:hover {
+  background-color: #c0392b; /* Darker red on hover */
+}
+
+/* Responsive Design for Small Screens */
+@media (max-width: 600px) {
+  .home-container {
+      padding: 20px; /* Less padding on smaller screens */
+  }
+
+  .home-container h2 {
+      font-size: 1.5rem; /* Smaller title size for small screens */
+  }
+
+  .home-container p {
+      font-size: 1rem; /* Adjust font size */
   }
 }

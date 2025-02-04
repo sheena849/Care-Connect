@@ -4,7 +4,6 @@ import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const UserHospitalForm = () => {
-    const [userId, setUserId] = useState('');
     const [hospitalId, setHospitalId] = useState('');
     const [status, setStatus] = useState('');
     const [error, setError] = useState('');
@@ -14,7 +13,6 @@ const UserHospitalForm = () => {
 
     useEffect(() => {
         if (userHospital) {
-            setUserId(userHospital.user_id);
             setHospitalId(userHospital.hospital_id);
             setStatus(userHospital.status);
         }
@@ -26,10 +24,11 @@ const UserHospitalForm = () => {
 
         try {
             const token = localStorage.getItem('token'); // Assuming you store the JWT token in local storage
+            const userId = localStorage.getItem('userId'); // Get user ID from local storage
             if (userHospital) {
                 // If user-hospital relationship exists, update it
                 await axios.put(`http://localhost:5000/userhospital/${userHospital.id}`, 
-                    { status }, 
+                    { user_id: userId, hospital_id: hospitalId, status }, 
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -61,13 +60,6 @@ const UserHospitalForm = () => {
             <h2>{userHospital ? 'Edit User-Hospital Relationship' : 'Add User-Hospital Relationship'}</h2>
             {error && <p style={{ color: 'red' }}>{error}</p>}
             <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
-                    placeholder="User  ID"
-                    required
-                />
                 <input
                     type="text"
                     value={hospitalId}

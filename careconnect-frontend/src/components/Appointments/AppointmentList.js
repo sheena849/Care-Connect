@@ -1,4 +1,3 @@
-// src/components/Appointments/AppointmentList.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -53,14 +52,20 @@ const AppointmentList = () => {
         }
     };
 
+    const handleAddAppointment = () => {
+        // Navigate to the AppointmentForm for adding a new appointment
+        navigate('/add-appointment');
+    };
+
     return (
         <div>
             <h2>Appointment List</h2>
             {error && <p style={{ color: 'red' }}>{error}</p>}
+            <button onClick={handleAddAppointment}>Add Appointment</button>
             <ul>
                 {appointments.map((appointment) => (
                     <li key={appointment.id}>
-                        {appointment.date} - {appointment.description}
+                        {new Date(appointment.date).toLocaleString()} - {appointment.description}
                         <button onClick={() => handleEdit(appointment)}>Edit</button>
                         <button onClick={() => handleDelete(appointment.id)}>Delete</button>
                     </li>

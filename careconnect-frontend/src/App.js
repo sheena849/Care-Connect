@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -7,9 +6,10 @@ import Login from './components/Auth/Login';
 import PatientManagement from './components/Patients/PatientManagement';
 import PatientForm from './components/Patients/PatientForm'; // Import PatientForm
 import AppointmentList from './components/Appointments/AppointmentList';
+import AppointmentForm from './components/Appointments/AppointmentForm'; // Import AppointmentForm
 import HospitalManagement from './components/Hospitals/HospitalManagement';
 import UserHospitalList from './components/UserHospitals/UserHospitalList';
-import UserHospitalForm from './components/UserHospitals/UserHospitalForm';
+import UserHospitalForm from './components/UserHospitals/UserHospitalForm'; // Import UserHospitalForm
 import HospitalForm from './components/Hospitals/HospitalForm'; // Import HospitalForm
 import Home from './components/Home'; // New Home component
 import './App.css';
@@ -46,13 +46,16 @@ const App = () => {
                     <Route path="/login" element={<Login onLogin={handleLogin} />} />
                     <Route path="/home" element={<Home onLogout={handleLogout} />} />
                     <Route path="/patients" element={userToken ? <PatientManagement /> : <Navigate to="/login" />} />
-                    <Route path="/edit-patient" element={userToken ? <PatientForm /> : <Navigate to="/login" />} /> {/* Add this route */}
+                    <Route path="/edit-patient" element={userToken ? <PatientForm /> : <Navigate to="/login" />} />
                     <Route path="/appointments" element={userToken ? <AppointmentList /> : <Navigate to="/login" />} />
+                    <Route path="/add-appointment" element={userToken ? <AppointmentForm /> : <Navigate to="/login" />} />
+                    <Route path="/edit-appointment" element={userToken ? <AppointmentForm /> : <Navigate to="/login" />} />
                     <Route path="/hospitals" element={userToken ? <HospitalManagement /> : <Navigate to="/login" />} />
                     <Route path="/user-hospitals" element={userToken ? <UserHospitalList /> : <Navigate to="/login" />} />
+                    <Route path="/user-hospitals/form" element={userToken ? <UserHospitalForm /> : <Navigate to="/login" />} /> {/* Add this route */}
                     <Route path="/add-user-hospital" element={userToken ? <UserHospitalForm /> : <Navigate to="/login" />} />
                     <Route path="/edit-user-hospital" element={userToken ? <UserHospitalForm /> : <Navigate to="/login" />} />
-                    <Route path="/edit-hospital" element={userToken ? <HospitalForm /> : <Navigate to="/login" />} /> {/* Add this route */}
+                    <Route path="/edit-hospital" element={userToken ? <HospitalForm /> : <Navigate to="/login" />} />
                 </Routes>
             </div>
         </Router>
